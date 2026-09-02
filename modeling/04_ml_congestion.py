@@ -84,6 +84,9 @@ def get_engine():
                         ["RDS_HOST", "RDS_PORT", "RDS_USER",
                          "RDS_PASSWORD", "RDS_DBNAME"])
     p = p or "5432"
+    # sslmode is configurable so the same script runs against RDS (require)
+    # and a local/containerised Postgres (disable). Default preserves AWS behaviour.
+    ssl = os.environ.get("RDS_SSLMODE", "require")
     missing = [k for k, v in zip(
         ["RDS_HOST", "RDS_USER", "RDS_PASSWORD", "RDS_DBNAME"],
         [h, u, pw, db]) if not v]
@@ -91,7 +94,7 @@ def get_engine():
         log.error("Missing env vars: %s", " ".join(missing))
         sys.exit(1)
     engine = create_engine(
-        f"postgresql+psycopg2://{u}:{pw}@{h}:{p}/{db}?sslmode=require",
+        f"postgresql+psycopg2://{u}:{pw}@{h}:{p}/{db}?sslmode={ssl}",
         pool_pre_ping=True, connect_args={"connect_timeout": 15})
     with engine.connect() as c:
         c.execute(text("SELECT 1"))
