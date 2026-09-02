@@ -43,6 +43,24 @@ const TT=({active,payload,label})=>{
   </div>;
 };
 
+/* ── Basemap ────────────────────────────────────────────────────────
+   CARTO requires an API key: unkeyed tiles are served but watermarked
+   "API KEY REQUIRED". Set REACT_APP_CARTO_KEY in dashboard-2.0/.env.local
+   (gitignored). Styles: dark_all | dark_nolabels | voyager | light_all.
+   Without a key we fall back to Esri's dark canvas, which needs no key but
+   carries no labels of its own — hence the separate reference overlay it
+   would require. Keep the key out of source; CRA inlines it into the bundle,
+   so restrict it by domain in the CARTO dashboard.                     */
+const CARTO_KEY   = process.env.REACT_APP_CARTO_KEY || "";
+const CARTO_STYLE = process.env.REACT_APP_CARTO_STYLE || "dark_all";
+const BASEMAP = CARTO_KEY
+  ? { url:`https://basemaps.cartocdn.com/rastertiles/${CARTO_STYLE}/{z}/{x}/{y}.png?key=${CARTO_KEY}`,
+      attribution:'&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap contributors',
+      maxZoom:20 }
+  : { url:"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+      attribution:'&copy; <a href="https://www.esri.com/">Esri</a>',
+      maxZoom:16 };
+
 function FlyTo({center,zoom}){const map=useMap();useEffect(()=>{map.flyTo(center,zoom,{duration:0.8});},[center,zoom,map]);return null;}
 
 // weather code for an ML port name (via bridge); null if no weather coverage
@@ -286,7 +304,11 @@ export default function Dashboard(){
         {/* Map */}
         <div style={{position:"relative",borderRight:`1px solid ${C.border}`}}>
           <MapContainer center={[-33.5,-71.0]} zoom={4} style={{height:"100%",width:"100%"}} scrollWheelZoom={true} zoomControl={true}>
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; <a href="https://carto.com/">CARTO</a>'/>
+            {/* CARTO basemap. Without a key CARTO still serves tiles but burns
+                an "API KEY REQUIRED" watermark into every one, so the key is
+                required for a clean map. Key and style come from .env.local
+                (gitignored); see BASEMAP below for the fallback. */}
+            <TileLayer url={BASEMAP.url} attribution={BASEMAP.attribution} maxZoom={BASEMAP.maxZoom}/>
             <FlyTo center={mapCenter} zoom={mapZoom}/>
             {mapPorts.map(p=>{
               // mode-aware coloring. weather value = annual % hrs closed
