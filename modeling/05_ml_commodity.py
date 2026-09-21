@@ -107,7 +107,7 @@ def get_engine():
     url = URL.create("postgresql+psycopg2",
                      username=u, password=pw,
                      host=h, port=int(p), database=db,
-                     query={"sslmode": "require"})
+                     query={"sslmode": os.environ.get("RDS_SSLMODE", "require")})
     engine = create_engine(url, pool_pre_ping=True,
                            connect_args={"connect_timeout": 15})
     with engine.connect() as c:
